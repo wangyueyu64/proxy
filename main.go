@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net"
-	"net/url"
 )
 
 func main() {
@@ -14,21 +12,23 @@ func main() {
 	if err := LogInit(); err != nil {
 		fmt.Printf("init log failed err :%v\n", err)
 	}
-	l, err := net.Listen("tcp", ":8081")
+	l, err := net.Listen("tcp", ":8080")
 	if err != nil {
-		log.Panic(err)
+		logger.Errorf("Listen err :%v", err)
 	}
 	for {
 		client, err := l.Accept()
 		if err != nil {
-			log.Panic(err)
+			logger.Errorf("Accept err :%v", err)
 		}
 		go handleClientRequest(client)
 	}
-}func handleClientRequest(client net.Conn) {
+}
+func handleClientRequest(client net.Conn) {
 
 	var b [1024]byte
-	var method, host, address string
+	var method, host string
+	targetAddress := "localhost:8081"
 
 	if client == nil {
 		return
@@ -37,29 +37,27 @@ func main() {
 
 	n, err := client.Read(b[:])
 	if err != nil {
-		log.Println(err)
+		logger.Errorf("Read err :%v", err)
 		return
 	}
 
-	fmt.Sscanf(string(b[:bytes.IndexByte(b[:], '\n')]), "%s%s", &method, &host)
-	hostPortURL, err := url.Parse(host)
+	_, err = fmt.Sscanf(string(b[:bytes.IndexByte(b[:], '\n')]), "%s%s", &method, &host)
 	if err != nil {
-		log.Println(err)
+		logger.Errorf("Sscanf err :%v", err)
 		return
 	}
-	//http访问
-	address = hostPortURL.Host
+
 	//获得了请求的host和port，就开始拨号吧
-	server, err := net.Dial("tcp", address)
+	server, err := net.Dial("tcp", targetAddress)
 	if err != nil {
-		log.Println(err)
+		logger.Errorf("Dial err :%v", err)
 		return
 	}
 	if method == "CONNECT" {
 		fmt.Fprint(client, "HTTP/1.1 200 Connection established\r\n")
 	} else {
 		server.Write(b[:n])
-	}    //进行转发
+	} //进行转发
 	go io.Copy(server, client)
 	io.Copy(client, server)
 }

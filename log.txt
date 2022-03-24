@@ -1,0 +1,6 @@
+time="2022-03-24T15:19:32+08:00" level=error msg="Read err :EOF"
+time="2022-03-24T15:14:35+08:00" level=error msg="Dial err :dial tcp: lookup tcp/8081/computer/find?id=5941ea72-fa69-4dea-b61d-f58b4bdd1931&model=s1&os=&user=: getaddrinfow: The specified class was not found."
+time="2022-03-24T15:14:50+08:00" level=error msg="Read err :EOF"
+time="2022-03-24T15:14:50+08:00" level=error msg="Dial err :dial tcp: lookup tcp/8081/computer/find?id=5941ea72-fa69-4dea-b61d-f58b4bdd1931&model=&os=&user=: getaddrinfow: The specified class was not found."
+time="2022-03-24T15:14:53+08:00" level=error msg="Read err :EOF"
+time="2022-03-24T15:14:53+08:00" level=error msg="Dial err :dial tcp: lookup tcp/8081/computer/find?id=5941ea72-fa69-4dea-b61d-f58b4bdd1931&model=&os=&user=: getaddrinfow: The specified class was not found."
