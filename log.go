@@ -17,6 +17,7 @@ func LogInit() error {
 	}
 
 	logger = logrus.New()
+	logger.SetReportCaller(true)
 	logger.SetOutput(logfile)
 
 	return nil
