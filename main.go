@@ -14,9 +14,9 @@ import (
 type Pxy struct{}
 
 func (p *Pxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	logger.Infof("Received request %s %s \n", req.Method, req.Host)
 
 	if filter(req) == false {
+		logger.Infof("安全评估结果不满足访问要求 request:%v", req)
 		http.Error(rw, "安全评估结果不满足访问要求", http.StatusBadRequest)
 		return
 	}
@@ -76,34 +76,51 @@ func filter(req *http.Request) bool {
 	//var opUpdate int = 70
 	//var opDel int = 60
 
+	logger.Infof("recept request : %+v", req)
+
 	url := strings.Split(req.URL.String(), "?")[0]
 
+	logger.Infof("请求URL： %v", url)
+
 	//过滤请求url
-	if url == "/user/sendEmail" || url == "/user/login" {
+	if url == "/user/sendEmail" || url == "/user/login" || url == "/user/register" {
 		return true
 	}
 
-	if url != "/computer/add" && url != "/computer/find" && url != "/computer/update" && url != "/computer/del" {
+	if url != "/computer/add" && url != "/computer/find" && url != "/computer/update" && url != "/computer/del " && url != "/computer/request" && url != "/computer/approve" && url != "/requision/find" {
+		logger.Infof("无效的URL")
 		return false
 	}
 
 	//********操作安全级别
 	if url == "/computer/find" {
-		opLevel = 90
+		opLevel = 50
 	}
 	if url == "/computer/add" {
-		opLevel = 80
-	}
-	if url == "/computer/update" {
 		opLevel = 70
 	}
+	if url == "/computer/update" {
+		opLevel = 80
+	}
 	if url == "/computer/del" {
+		opLevel = 90
+	}
+	if url == "/computer/request" {
 		opLevel = 60
 	}
+	if url == "/computer/approve" {
+		opLevel = 80
+	}
+	if url == "/requision/find" {
+		opLevel = 50
+	}
+
+	logger.Infof("op level: %v", opLevel)
 
 	//********获取用户安全等级
 	userid := req.Header.Get("userid")
 	resp, _ := http.Get("http://localhost:8081/user/getLevel?userid=" + userid)
+	logger.Infof("get req from server: %+v", req)
 	defer resp.Body.Close()
 
 	buf := make([]byte, 1024)
@@ -124,20 +141,38 @@ func filter(req *http.Request) bool {
 		}
 	}
 
+	logger.Infof("user score： %v", usrLevel)
+
 	//*******获取资源安全等级
 	//不存在 使用资源默认等级
 	if url == "/computer/add" {
+		sourceLevel = 5
+	} else if url == "/computer/find" {
+		sourceLevel = 5
+	} else if url == "/requision/find" {
 		sourceLevel = 5
 	} else {
 		//已有资源根据id 查询
 		var computerId string
 
+		if url == "/computer/request" {
+			//获取computerId
+			computerId = strings.Split(req.URL.String(), "aid=")[1]
+		}
+		if url == "/computer/approve" {
+			//获取computerId
+			computerId = strings.Split(strings.Split(req.URL.String(), "aid=")[1], "&")[0]
+		}
+
 		if url == "/computer/del" {
 			//获取computerId
 			computerId = strings.Split(req.URL.String(), "id=")[1]
-		} else {
+		}
+		if url == "/computer/update" {
 			computerId = strings.Split(strings.Split(req.URL.String(), "id=")[1], "&")[0]
 		}
+
+		fmt.Printf("cid : %v\n", computerId)
 
 		resp1, _ := http.Get("http://localhost:8081/computer/find?id=" + computerId)
 		defer resp1.Body.Close()
@@ -149,19 +184,20 @@ func filter(req *http.Request) bool {
 			logger.Errorf("read body err: %v", err)
 			return false
 		} else {
-			fmt.Printf("n :%v\n", string(n))
+			//fmt.Printf("n :%v\n", string(n))
 			if err = json.Unmarshal([]byte(string(n)), &res); err != nil {
 				logger.Errorf("Unmarshal err: %v", err)
 				return false
 			}
 		}
 
-		fmt.Printf("res :%v\n", res)
+		logger.Infof("res :%v\n", res)
 		sourceLevel = res[0].Level
 	}
+	logger.Infof("assets sevurity level: %v", sourceLevel)
 
-	score = float64(usrLevel * opLevel / sourceLevel)
-	fmt.Printf("score :%v\n", score)
+	score = float64(usrLevel / sourceLevel * opLevel)
+	logger.Infof("score :%v", score)
 
 	return true
 }
